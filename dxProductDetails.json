@@ -1,0 +1,31 @@
+{
+  "a0sDebugAdditionalProductNames": [
+    "mConsole",
+    "mDebugOutput",
+    "mFileSystemItem",
+    "mWindowsSDK"
+  ],
+  "a0sDependentOnProductNames": [
+    "mDateTime",
+    "mHTTPProtocol",
+    "mNotProvided"
+  ],
+  "a0sReleaseAdditionalProductNames": [
+  ],
+  "asProductTypes": [
+    "Python module"
+  ],
+  "o0Repository": {
+    "sStructureVersion": "2021-07-02 11:16",
+    "sType": "GitHub",
+    "sbBranch": "master",
+    "sbRepositoryName": "mHTTPCookieStore",
+    "sbUserName": "SkyLined"
+  },
+  "oProductVersion": "2023-04-20 08:55",
+  "s0PythonModuleName": "mHTTPCookieStore",
+  "sProductAuthor": "SkyLined",
+  "sProductName": "mHTTPCookieStore",
+  "sStructureVersion": "2021-07-02 11:16",
+  "sb0ProductURL": "https://github.com/SkyLined/mHTTPCookieStore"
+}
