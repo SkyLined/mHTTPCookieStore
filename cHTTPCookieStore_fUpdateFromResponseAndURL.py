@@ -7,9 +7,10 @@ from .cHTTPCookie import cHTTPCookie;
 bDebugOutput = False;
 
 asHTTPMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-rHTTPDateTimeFormat = re.compile("".join([
+# This is the official format of date/time:
+rHTTPDateTimeFormat_RFC9110 = re.compile("".join([
   r"\A",
-  r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)",       # Day of week name
+  r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)",     # Day of week name
   r", ",                                  
   r"(\d{2})",                             # Day in month
   r"[ \-]",                               
@@ -25,6 +26,27 @@ rHTTPDateTimeFormat = re.compile("".join([
   r" GMT",
   r"\Z",
 ]));
+# This is also allowed for compatibility with older code.
+rHTTPDateTimeFormat_Compatible = re.compile("".join([
+  r"\A",
+  r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)",     # Day of week name
+  r"\s+",                                  
+  r"(%s)" % "|".join(asHTTPMonthNames),   # Month name
+  r"\s+",                               
+  r"(\d{1,2})",                           # Day in month
+  r"\s+",                               
+  r"(\d{4})",                             # Year
+  r" ",                                   
+  r"(\d{1,2})",                           # Hour
+  r":",                                   
+  r"(\d{2})",                             # Minute
+  r":",                                   
+  r"(\d{2})",                             # Second
+  r" GMT",
+  r"(?:\+0+)?",                           # Timezone offset from GMT (must be 0, ignored).
+  r"(?:\s+\(.*\))?",                      # Timezone name (ignored).
+  r"\Z",
+]));
 
 def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
   oResponse,
@@ -38,7 +60,7 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
     sbCookieDomainName = oURL.sbHostname;
     sbLowerCookieDomainName = sbCookieDomainName.lower()
     # Go through any remaining name-value pairs and handle them as cookie attributes. 
-    bExpiresAttributeFound = False;
+    bValidExpiresAttributeFound = False;
     bDomainAttributeFound = False;
     dxCookieAttributeArguments = {};
     bSecurePrefix = sbCookieName.startswith(b"__Secure-");
@@ -50,26 +72,28 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
         # For now we use the last valid value. TODO: find out if there is a standard.
         sHTTPDateTime = str(sbValue, "ascii", "strict");
         try:
-          (sDay, sMonthName, sYear, sHour, sMinute, sSecond) = rHTTPDateTimeFormat.match(sHTTPDateTime).groups();
+          (sDay, sMonthName, sYear, sHour, sMinute, sSecond) = rHTTPDateTimeFormat_RFC9110.match(sHTTPDateTime).groups();
         except:
-          if bDebugOutput: print("- Invalid 'Expires' attribute for %s" % oHeader);
-          if oSelf.f0InvalidCookieAttributeCallback:
-            oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
-          # If the server provides an invalid "Expires" value, the cookie is ignored.
-          break;
-        else:
-          oPyExpiresDateTime = datetime.datetime(
-            year = int(sYear),
-            month = asHTTPMonthNames.index(sMonthName) + 1,
-            day = int(sDay),
-            hour = int(sHour),
-            minute = int(sMinute),
-            second = int(sSecond),
-            tzinfo =  datetime.timezone.utc,
-          );
-          oExpiresDateTime = cDateTime.foFromPyDateTime(oPyExpiresDateTime);
-          dxCookieAttributeArguments["o0ExpirationDateTime"] = oExpiresDateTime;
-          bExpiresAttributeFound = True;
+          try:
+            (sMonthName, sDay, sYear, sHour, sMinute, sSecond) = rHTTPDateTimeFormat_Compatible.match(sHTTPDateTime).groups();
+          except:
+            if bDebugOutput: print("- Invalid 'Expires' attribute for %s" % oHeader);
+            if oSelf.f0InvalidCookieAttributeCallback:
+              oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
+            # If the server provides an invalid "Expires" value, we will just ignore it.
+            continue;
+        oPyExpiresDateTime = datetime.datetime(
+          year = int(sYear),
+          month = asHTTPMonthNames.index(sMonthName) + 1,
+          day = int(sDay),
+          hour = int(sHour),
+          minute = int(sMinute),
+          second = int(sSecond),
+          tzinfo =  datetime.timezone.utc,
+        );
+        oExpiresDateTime = cDateTime.foFromPyDateTime(oPyExpiresDateTime);
+        dxCookieAttributeArguments["o0ExpirationDateTime"] = oExpiresDateTime;
+        bValidExpiresAttributeFound = True;
       elif sbLowerName == b"max-age":
         # What should we do if the server provides multiple "Max-Age" values?
         # For now we use the last valid value. TODO: find out if there is a standard.
@@ -81,96 +105,116 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
           if bDebugOutput: print("- Invalid 'Max-Age' attribute for %s" % oHeader);
           if oSelf.f0InvalidCookieAttributeCallback:
             oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
-          # If the server provides an invalid "Max-Age" value, the cookie is ignored.
-          break;
-        else:
-          # expires header takes precedent.
-          if not bExpiresAttributeFound:
-            oMaxAgeDateTimeDuration = cDateTimeDuration.fo0FromString("%+ds" % uNumberOfSeconds);
-            oExpirationDateTime = cDateTime.foNow().foGetEndDateTimeForDuration(oMaxAgeDateTimeDuration);
-            dxCookieAttributeArguments["o0ExpirationDateTime"] = oExpirationDateTime;
+          # If the server provides an invalid "Max-Age" value, we will just ignore it.
+          continue;
+        # Expires header takes precedent. If both are provided, MaxAge is ignored.
+        if not bValidExpiresAttributeFound:
+          oMaxAgeDateTimeDuration = cDateTimeDuration.fo0FromString("%+ds" % uNumberOfSeconds);
+          oExpirationDateTime = cDateTime.foNow().foGetEndDateTimeForDuration(oMaxAgeDateTimeDuration);
+          dxCookieAttributeArguments["o0ExpirationDateTime"] = oExpirationDateTime;
       elif sbLowerName == b"domain":
-        sbCookieDomainName = sbValue.lstrip(b".");
-        sbLowerCookieDomainName = sbCookieDomainName.lower();
+        sbDomainName = sbValue.lstrip(b".");
+        sbLowerDomainName = sbDomainName.lower();
         sbLowerURLHostname = oURL.sbHostname.lower();
         if (
-          # If the server provides the "Domain" value more than once, the cookie is ignored.
+          # If the server provides the "Domain" value more than once, the later values are ignored.
           bDomainAttributeFound
-          # Cookies with a "__Host-" prefix must *not* have a "Domain" attribute
+          # Cookies with a "__Host-" prefix must *not* have a "Domain" attribute; it will be ignored.
           or bHostPrefix
           or (
-            # If the server provides a "Domain" that is not the same as the hostname in the URL or a parent domain:
-            sbLowerURLHostname != sbLowerCookieDomainName and not sbLowerURLHostname.endswith(b"." + sbLowerCookieDomainName)
+            # If the server provides a "Domain" that is not the same as the hostname in the URL
+            # or a parent domain, the domain is ignored.
+            sbLowerURLHostname != sbLowerDomainName and not sbLowerURLHostname.endswith(b"." + sbLowerDomainName)
           )
         ):
           if bDebugOutput: print("- Invalid 'Domain' attribute for %s" % oHeader);
           if oSelf.f0InvalidCookieAttributeCallback:
             oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
-          break;
+        else:
+          sbCookieDomainName = sbDomainName;
       elif sbLowerName == b"path":
+        # What should we do if the server provides multiple "Path" values?
+        # For now we report any later values and ignore them.
+        # TODO: find out if there is a standard.
+        if "sb0Path" in dxCookieAttributeArguments:
+          if oSelf.f0InvalidCookieAttributeCallback:
+            oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
+          continue;
         # Cookies with a "__Host-" prefix *must* have a "Path=/" attribute
         if bHostPrefix and not sbValue == b"/":
           if bDebugOutput: print("- Invalid 'Path' attribute for %s" % oHeader);
           if oSelf.f0InvalidCookieAttributeCallback:
-            oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, "Secure", None, False);
-          break;
-        # What should we do if the server provides multiple "Path" values?
-        # For now we use the last valid value. TODO: find out if there is a standard.
-        # make sure it starts with a '/' and there is no '/' after the last directory name).
-        sbPath = b"/" + sbValue.strip(b"/");
-        if not cHTTPCookie.fbIsValidPath(sbPath):
-          if bDebugOutput: print("- Invalid 'Path' attribute for %s" % oHeader);
-          if oSelf.f0InvalidCookieAttributeCallback:
             oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
-          break;
-        dxCookieAttributeArguments["sb0Path"] = sbPath;
+          # The value is ignored and replace with "/"
+          dxCookieAttributeArguments["sb0Path"] = b"/";
+        else:
+          # make sure it starts with a '/' and there is no '/' after the last directory name.
+          sbPath = b"/" + sbValue.strip(b"/");
+          if not cHTTPCookie.fbIsValidPath(sbPath):
+            if bDebugOutput: print("- Invalid 'Path' attribute for %s" % oHeader);
+            if oSelf.f0InvalidCookieAttributeCallback:
+              oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
+            sbPath = b"/";
+          dxCookieAttributeArguments["sb0Path"] = sbPath;
       elif sbLowerName == b"secure":
         # What should we do if the server provides a value for "Secure"?
-        # For now we ignore any value. TODO: find out if there is a standard.
+        # For now we report and ignore any value. TODO: find out if there is a standard.
+        if sbValue:
+          if bDebugOutput: print("- Superflous 'Secure' attribute value for %s" % oHeader);
+          if oSelf.f0InvalidCookieAttributeCallback:
+            oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
         dxCookieAttributeArguments["bSecure"] = True;
       elif sbLowerName == b"httponly":
         # What should we do if the server provides a value for "HttpOnly"?
-        # For now we ignore any value. TODO: find out if there is a standard.
-        dxCookieAttributeArguments["bHttpOnly"] = True;
-      elif sbLowerName == b"samesite":
-        # Fix casing if needed.
-        sbCapitalizedValue = sbValue[:1].upper() + sbValue[1:].lower();
-        if sbCapitalizedValue in (b"Strict", b"Lax", b"None"):
-          dxCookieAttributeArguments["sbSameSite"] = sbCapitalizedValue;
-        else:
-          # What should we do if the client provides an invalid "SameSite" value?
-          if bDebugOutput: print("- Invalid 'SameSite' attribute for %s" % oHeader);
+        # For now we report and ignore any value. TODO: find out if there is a standard.
+        if sbValue:
+          if bDebugOutput: print("- Superflous 'HttpOnly' attribute value for %s" % oHeader);
           if oSelf.f0InvalidCookieAttributeCallback:
             oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
-          break;
+        dxCookieAttributeArguments["bHttpOnly"] = True;
+      elif sbLowerName == b"samesite":
+        if not sbValue:
+          if bDebugOutput: print("- Missing 'SameSite' attribute value for %s" % oHeader);
+          if oSelf.f0InvalidCookieAttributeCallback:
+            oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
+          dxCookieAttributeArguments["sbSameSite"] = b"Lax"; # The default
+        else:
+          # Fix casing if needed.
+          sbCapitalizedValue = sbValue[:1].upper() + sbValue[1:].lower();
+          if sbCapitalizedValue in (b"Strict", b"Lax", b"None"):
+            dxCookieAttributeArguments["sbSameSite"] = sbCapitalizedValue;
+          else:
+            # What should we do if the client provides an invalid "SameSite" value?
+            if bDebugOutput: print("- Invalid 'SameSite' attribute for %s" % oHeader);
+            # For now we report use the default "Lax" value. TODO: find out if there is a standard.
+            if oSelf.f0InvalidCookieAttributeCallback:
+              oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
+            dxCookieAttributeArguments["sbSameSite"] = b"Lax"; # The default
       else:
         # What should we do if the server provides an unhandled named value?
+        # For now we report and ignore any value. TODO: find out if there is a standard.
         if bDebugOutput: print("- Unknown %s attribute for cookie %s" % (repr(sbName), repr(sbCookieName)));
         if oSelf.f0InvalidCookieAttributeCallback:
           oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, False);
-        break;
-    # An invalid Set-Cookie header will "break" the loop. "else" here makes sure we only
-    # accept the cookie if it's valid:
-    else:
-      if bSecurePrefix or bHostPrefix:
-        # Cookies with these two prefixes MUST have the "Secure" attribute set.
-        if not dxCookieAttributeArguments.get("bSecure"):
-          if bDebugOutput: print("- Missing 'Secure' attribute for %s" % oHeader);
-          if oSelf.f0InvalidCookieAttributeCallback:
-            oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, "Secure", None, False);
-          continue;
-        # Cookies with a "__Host-" prefix MUST have the "Path" attribute set (to "/", but we checked for that earlier).
-        if bHostPrefix and not "sb0Path" in dxCookieAttributeArguments:
-          if bDebugOutput: print("- Missing 'Path' attribute for %s" % oHeader);
-          if oSelf.f0InvalidCookieAttributeCallback:
-            oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, "Path", dxCookieAttributeArguments.get("sb0Path"), False);
-          break;
-      oCookie = oSelf.foAddCookie(
-        sbCookieName,
-        sbCookieValue,
-        sbCookieDomainName,
-        **dxCookieAttributeArguments,
-      );
-      if oSelf.f0CookieReceivedCallback:
-        oSelf.f0CookieReceivedCallback(oSelf, oResponse, oURL, oCookie);
-      if bDebugOutput: print("+ Added cookie %s" % oCookie);
+    if bSecurePrefix or bHostPrefix:
+      # Cookies with these two prefixes MUST have the "Secure" attribute set.
+      if not dxCookieAttributeArguments.get("bSecure"):
+        if bDebugOutput: print("- Missing 'Secure' attribute for %s" % oHeader);
+        if oSelf.f0InvalidCookieAttributeCallback:
+          oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, "Secure", None, False);
+        dxCookieAttributeArguments["bSecure"] = True;
+      # Cookies with a "__Host-" prefix MUST have the "Path" attribute set (to "/", but we checked for that earlier).
+      if bHostPrefix and not "sb0Path" in dxCookieAttributeArguments:
+        if bDebugOutput: print("- Missing 'Path' attribute for %s" % oHeader);
+        if oSelf.f0InvalidCookieAttributeCallback:
+          oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, "Path", dxCookieAttributeArguments.get("sb0Path"), False);
+        dxCookieAttributeArguments["sb0Path"] = b"/";
+    oCookie = oSelf.foAddCookie(
+      sbCookieName,
+      sbCookieValue,
+      sbCookieDomainName,
+      **dxCookieAttributeArguments,
+    );
+    if oSelf.f0CookieReceivedCallback:
+      oSelf.f0CookieReceivedCallback(oSelf, oResponse, oURL, oCookie);
+    if bDebugOutput: print("+ Added cookie %s" % oCookie);
