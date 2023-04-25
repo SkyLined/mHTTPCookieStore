@@ -6,46 +6,47 @@ from .cHTTPCookie import cHTTPCookie;
 
 bDebugOutput = False;
 
-asHTTPMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+asbWeekNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+asbHTTPMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 # This is the official format of date/time:
-rHTTPDateTimeFormat_RFC9110 = re.compile("".join([
-  r"\A",
-  r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)",     # Day of week name
-  r", ",                                  
-  r"(\d{2})",                             # Day in month
-  r"[ \-]",                               
-  r"(%s)" % "|".join(asHTTPMonthNames),   # Month name
-  r"[ \-]",                               
-  r"(\d{4})",                             # Year
-  r" ",                                   
-  r"(\d{2})",                             # Hour
-  r":",                                   
-  r"(\d{2})",                             # Minute
-  r":",                                   
-  r"(\d{2})",                             # Second
-  r" GMT",
-  r"\Z",
+rbHTTPDateTimeFormat_RFC9110 = re.compile(b"".join([
+  rb"\A",
+  rb"(?:%s)" % rb"|".join(asbWeekNames),    # Day of week name
+  rb", ",                                  
+  rb"(\d{2})",                              # Day in month
+  rb"[ \-]",                               
+  rb"(%s)" % b"|".join(asbHTTPMonthNames),  # Month name
+  rb"[ \-]",                               
+  rb"(\d{4})",                              # Year
+  rb" ",                                   
+  rb"(\d{2})",                              # Hour
+  rb":",                                   
+  rb"(\d{2})",                              # Minute
+  rb":",                                   
+  rb"(\d{2})",                              # Second
+  rb" GMT",
+  rb"\Z",
 ]));
 # This is also allowed for compatibility with older code.
-rHTTPDateTimeFormat_Compatible = re.compile("".join([
-  r"\A",
-  r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)",     # Day of week name
-  r"\s+",                                  
-  r"(%s)" % "|".join(asHTTPMonthNames),   # Month name
-  r"\s+",                               
-  r"(\d{1,2})",                           # Day in month
-  r"\s+",                               
-  r"(\d{4})",                             # Year
-  r" ",                                   
-  r"(\d{1,2})",                           # Hour
-  r":",                                   
-  r"(\d{2})",                             # Minute
-  r":",                                   
-  r"(\d{2})",                             # Second
-  r" GMT",
-  r"(?:\+0+)?",                           # Timezone offset from GMT (must be 0, ignored).
-  r"(?:\s+\(.*\))?",                      # Timezone name (ignored).
-  r"\Z",
+rbHTTPDateTimeFormat_Compatible = re.compile(b"".join([
+  rb"\A",
+  rb"(?:%s)" % rb"|".join(asbWeekNames),    # Day of week name (ignored)
+  rb"\s+",                                  
+  rb"(%s)" % rb"|".join(asbHTTPMonthNames), # Month name
+  rb"\s+",                               
+  rb"(\d{1,2})",                            # Day in month
+  rb"\s+",                               
+  rb"(\d{4})",                              # Year
+  rb"\s+",                                   
+  rb"(\d{1,2})",                            # Hour
+  rb":",                                   
+  rb"(\d{2})",                              # Minute
+  rb":",                                   
+  rb"(\d{2})",                              # Second
+  rb" GMT",
+  rb"(?:\+0+)?",                            # Timezone offset from GMT (must be 0, ignored).
+  rb"(?:\s+\(.+\))?",                       # Timezone name (ignored).
+  rb"\Z",
 ]));
 
 def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
@@ -72,10 +73,10 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
         # For now we use the last valid value. TODO: find out if there is a standard.
         sHTTPDateTime = str(sbValue, "ascii", "strict");
         try:
-          (sDay, sMonthName, sYear, sHour, sMinute, sSecond) = rHTTPDateTimeFormat_RFC9110.match(sHTTPDateTime).groups();
+          (sbDay, sbMonthName, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_RFC9110.match(sHTTPDateTime).groups();
         except:
           try:
-            (sMonthName, sDay, sYear, sHour, sMinute, sSecond) = rHTTPDateTimeFormat_Compatible.match(sHTTPDateTime).groups();
+            (sbMonthName, sbDay, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_Compatible.match(sHTTPDateTime).groups();
           except:
             if bDebugOutput: print("- Invalid 'Expires' attribute for %s" % oHeader);
             if oSelf.f0InvalidCookieAttributeCallback:
@@ -83,12 +84,12 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
             # If the server provides an invalid "Expires" value, we will just ignore it.
             continue;
         oPyExpiresDateTime = datetime.datetime(
-          year = int(sYear),
-          month = asHTTPMonthNames.index(sMonthName) + 1,
-          day = int(sDay),
-          hour = int(sHour),
-          minute = int(sMinute),
-          second = int(sSecond),
+          year = int(sbYear),
+          month = asbHTTPMonthNames.index(sbMonthName) + 1,
+          day = int(sbDay),
+          hour = int(sbHour),
+          minute = int(sbMinute),
+          second = int(sbSecond),
           tzinfo =  datetime.timezone.utc,
         );
         oExpiresDateTime = cDateTime.foFromPyDateTime(oPyExpiresDateTime);
