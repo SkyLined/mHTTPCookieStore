@@ -6,8 +6,8 @@ from .cHTTPCookie import cHTTPCookie;
 
 bDebugOutput = False;
 
-asbWeekNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-asbHTTPMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+asbWeekNames = [b"Mon", b"Tue", b"Wed", b"Thu", b"Fri", b"Sat", b"Sun"];
+asbHTTPMonthNames = [b"Jan", b"Feb", b"Mar", b"Apr", b"May", b"Jun", b"Jul", b"Aug", b"Sep", b"Oct", b"Nov", b"Dec"];
 # This is the official format of date/time:
 rbHTTPDateTimeFormat_RFC9110 = re.compile(b"".join([
   rb"\A",
