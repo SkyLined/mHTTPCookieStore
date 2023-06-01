@@ -10,8 +10,7 @@
     "mHTTPProtocol",
     "mNotProvided"
   ],
-  "a0sReleaseAdditionalProductNames": [
-  ],
+  "a0sReleaseAdditionalProductNames": [],
   "asProductTypes": [
     "Python module"
   ],
@@ -22,7 +21,7 @@
     "sbRepositoryName": "mHTTPCookieStore",
     "sbUserName": "SkyLined"
   },
-  "oProductVersion": "2023-04-20 08:55",
+  "oProductVersion": "2023-06-01 14:22",
   "s0PythonModuleName": "mHTTPCookieStore",
   "sProductAuthor": "SkyLined",
   "sProductName": "mHTTPCookieStore",
