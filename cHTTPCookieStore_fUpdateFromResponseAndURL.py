@@ -10,20 +10,21 @@ asbWeekNames = [b"Mon", b"Tue", b"Wed", b"Thu", b"Fri", b"Sat", b"Sun"];
 asbHTTPMonthNames = [b"Jan", b"Feb", b"Mar", b"Apr", b"May", b"Jun", b"Jul", b"Aug", b"Sep", b"Oct", b"Nov", b"Dec"];
 # This is the official format of date/time:
 rbHTTPDateTimeFormat_RFC9110 = re.compile(b"".join([
+  # "Sat, 28 Aug 1976 08:45:00"
   rb"\A",
   rb"(?:%s)" % rb"|".join(asbWeekNames),    # Day of week name
   rb", ",                                  
-  rb"(\d{2})",                              # Day in month
+  rb"(\d{2})",                              # >> Day in month
   rb"[ \-]",                               
-  rb"(%s)" % b"|".join(asbHTTPMonthNames),  # Month name
+  rb"(%s)" % b"|".join(asbHTTPMonthNames),  # >> Month name
   rb"[ \-]",                               
-  rb"(\d{4})",                              # Year
+  rb"(\d{4})",                              # >> Year
   rb" ",                                   
-  rb"(\d{2})",                              # Hour
+  rb"(\d{2})",                              # >> Hour
   rb":",                                   
-  rb"(\d{2})",                              # Minute
+  rb"(\d{2})",                              # >> Minute
   rb":",                                   
-  rb"(\d{2})",                              # Second
+  rb"(\d{2})",                              # >> Second
   rb" GMT",
   rb"\Z",
 ]));
@@ -71,12 +72,11 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
       if sbLowerName == b"expires":
         # What should we do if the server provides multiple "Expires" values?
         # For now we use the last valid value. TODO: find out if there is a standard.
-        sHTTPDateTime = str(sbValue, "ascii", "strict");
         try:
-          (sbDay, sbMonthName, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_RFC9110.match(sHTTPDateTime).groups();
+          (sbDay, sbMonthName, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_RFC9110.match(sbValue).groups();
         except:
           try:
-            (sbMonthName, sbDay, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_Compatible.match(sHTTPDateTime).groups();
+            (sbMonthName, sbDay, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_Compatible.match(sbValue).groups();
           except:
             if bDebugOutput: print("- Invalid 'Expires' attribute for %s" % oHeader);
             if oSelf.f0InvalidCookieAttributeCallback:
