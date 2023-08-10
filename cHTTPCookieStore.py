@@ -7,6 +7,7 @@ from .cHTTPCookieStore_fbImportFromJSON import cHTTPCookieStore_fbImportFromJSON
 from .cHTTPCookieStore_fbRemoveCookie import cHTTPCookieStore_fbRemoveCookie;
 from .cHTTPCookieStore_fdxExportToJSON import cHTTPCookieStore_fdxExportToJSON;
 from .cHTTPCookieStore_foAddCookie import cHTTPCookieStore_foAddCookie;
+from .cHTTPCookieStore_foClone import cHTTPCookieStore_foClone;
 from .cHTTPCookieStore_fUpdateFromResponseAndURL import cHTTPCookieStore_fUpdateFromResponseAndURL;
 
 rbEOL = re.compile(rb"[\r\n]+");
@@ -68,4 +69,5 @@ class cHTTPCookieStore(object):
   fbRemoveCookie = cHTTPCookieStore_fbRemoveCookie;
   fdxExportToJSON = cHTTPCookieStore_fdxExportToJSON;
   foAddCookie = cHTTPCookieStore_foAddCookie;
+  foClone = cHTTPCookieStore_foClone;
   fUpdateFromResponseAndURL = cHTTPCookieStore_fUpdateFromResponseAndURL;
