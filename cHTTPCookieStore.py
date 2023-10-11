@@ -1,6 +1,7 @@
 import re;
 
 from .cHTTPCookie import cHTTPCookie;
+from .cHTTPCookieStore_faoGetCookies import cHTTPCookieStore_faoGetCookies;
 from .cHTTPCookieStore_faoGetCookiesForURL import cHTTPCookieStore_faoGetCookiesForURL;
 from .cHTTPCookieStore_fApplyToRequestForURL import cHTTPCookieStore_fApplyToRequestForURL;
 from .cHTTPCookieStore_fbImportFromJSON import cHTTPCookieStore_fbImportFromJSON;
@@ -63,6 +64,7 @@ class cHTTPCookieStore(object):
   def __str__(oSelf):
     return "%s#%X{%s}" % (oSelf.__class__.__name__, id(oSelf), ", ".join(oSelf.fasGetDetails()));
 
+  faoGetCookies = cHTTPCookieStore_faoGetCookies;
   faoGetCookiesForURL = cHTTPCookieStore_faoGetCookiesForURL;
   fApplyToRequestForURL = cHTTPCookieStore_fApplyToRequestForURL;
   fbImportFromJSON = cHTTPCookieStore_fbImportFromJSON;
