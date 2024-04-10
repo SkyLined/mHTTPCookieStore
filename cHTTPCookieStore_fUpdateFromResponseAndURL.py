@@ -59,7 +59,7 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
     aCookie_tsbName_and_sbValue = oHeader.fGet_atsbName_and_sbValue();
     # The first name-value pair is the cookie's name and value.
     sbCookieName, sbCookieValue = aCookie_tsbName_and_sbValue.pop(0);
-    sbCookieDomainName = oURL.sbHostname;
+    sbCookieDomainName = oURL.sbHost;
     sbLowerCookieDomainName = sbCookieDomainName.lower()
     # Go through any remaining name-value pairs and handle them as cookie attributes. 
     bValidExpiresAttributeFound = False;
@@ -116,16 +116,16 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
       elif sbLowerName == b"domain":
         sbDomainName = sbValue.lstrip(b".");
         sbLowerDomainName = sbDomainName.lower();
-        sbLowerURLHostname = oURL.sbHostname.lower();
+        sbLowerURLHost = oURL.sbHost.lower();
         if (
           # If the server provides the "Domain" value more than once, the later values are ignored.
           bDomainAttributeFound
           # Cookies with a "__Host-" prefix must *not* have a "Domain" attribute; it will be ignored.
           or bHostPrefix
           or (
-            # If the server provides a "Domain" that is not the same as the hostname in the URL
+            # If the server provides a "Domain" that is not the same as the host in the URL
             # or a parent domain, the domain is ignored.
-            sbLowerURLHostname != sbLowerDomainName and not sbLowerURLHostname.endswith(b"." + sbLowerDomainName)
+            sbLowerURLHost != sbLowerDomainName and not sbLowerURLHost.endswith(b"." + sbLowerDomainName)
           )
         ):
           if bDebugOutput: print("- Invalid 'Domain' attribute for %s" % oHeader);

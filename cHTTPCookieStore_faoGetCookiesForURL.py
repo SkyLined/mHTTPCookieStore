@@ -6,14 +6,14 @@ def cHTTPCookieStore_faoGetCookiesForURL(oSelf, oURL):
   if not oSelf.daoCookies_by_sbLowerDomainName:
     if bDebugOutput: print("| - No cookies in session");
     return [];
-  sbLowerHostnameWithLeadingDot = b".%s" % oURL.sbHostname.lower();              # .sub-domain.example.com
+  sbLowerHostWithLeadingDot = b".%s" % oURL.sbHost.lower();              # .sub-domain.example.com
   oNow = cDateTime.foNow();
   doCookie_by_sbName = {};
   for (sbLowerDomainName, aoDomainCookies) in oSelf.daoCookies_by_sbLowerDomainName.items():
     # a cookie for "example.com" applies to "example.com" as well as sub-domains of example.com:
-    if not sbLowerHostnameWithLeadingDot.endswith(b".%s" % sbLowerDomainName):
-      if bDebugOutput: print("| - URL hostname (%s) does not match cookie domain %s" % (
-        repr(oURL.sbHostname)[1:],
+    if not sbLowerHostWithLeadingDot.endswith(b".%s" % sbLowerDomainName):
+      if bDebugOutput: print("| - URL Host (%s) does not match cookie domain %s" % (
+        repr(oURL.sbHost)[1:],
         repr(sbLowerDomainName)[1:],
       ));
       continue;
