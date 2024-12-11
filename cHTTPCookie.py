@@ -3,6 +3,13 @@ import re;
 from mDateTime import cDateTime;
 from mNotProvided import fAssertTypes;
 
+from .mExceptions import (
+  cInvalidCookieDomainNameException,
+  cInvalidCookieSameSiteException,
+  cInvalidCookiePathException,
+);
+
+
 rDomainNameFormat = re.compile(
   rb"\A"
   rb"\.?" # a single leading '.' is allowed but ignored.
@@ -22,12 +29,6 @@ rPathFormat = re.compile(
 );
 
 class cHTTPCookie(object):
-  class cInvalidDomainNameException(Exception):
-    pass;
-  class cInvalidPathException(Exception):
-    pass;
-  class cInvalidSameSiteException(Exception):
-    pass;
   @staticmethod
   def fbIsValidDomainName(sbDomainName):
     return rDomainNameFormat.match(sbDomainName.lstrip(b".")) is not None;
@@ -86,6 +87,7 @@ class cHTTPCookie(object):
     sbName,
     sbValue,
     sbDomainName,
+    *,
     o0ExpirationDateTime = None,
     sb0Path = None,
     bSecure = False,
@@ -102,26 +104,54 @@ class cHTTPCookie(object):
       "bHttpOnly": (bHttpOnly, bool),
       "sbSameSite": (sbSameSite, bytes),
     });
-    if not oSelf.fbIsValidDomainName(sbDomainName):
-      raise oSelf.cInvalidDomainNameException(
-        "sbDomainName must be None or a valid domain name, not %s" % repr(sbDomainName)
-      );
-    if not sbSameSite in [b"Strict", b"Lax", b"None"]:
-      raise oSelf.cInvalidSameSiteException(
-        "sbSameSite must be \"Strict\",  \"Lax\", or \"None\", not %s" % repr(sbSameSite)
-      );
-    if sb0Path is not None and not oSelf.fbIsValidPath(sb0Path):
-      raise oSelf.cInvalidPathException(
-        "sb0Path must be None or a valid path, not %s" % repr(sb0Path)
-      );
     oSelf.sbName = sbName;
     oSelf.sbValue = sbValue;
     oSelf.o0ExpirationDateTime = o0ExpirationDateTime;
-    oSelf.sbDomainName = sbDomainName.lstrip(b".");
-    oSelf.sb0Path = sb0Path;
+    oSelf.__sbDomainName = sbDomainName.lstrip(b".");
+    oSelf.__sb0Path = sb0Path;
     oSelf.bSecure = bSecure;
     oSelf.bHttpOnly = bHttpOnly;
-    oSelf.sbSameSite = sbSameSite;
+    oSelf.__sbSameSite = sbSameSite;
+    # Validity check after setting everything up:
+    oSelf.sbDomainName = sbDomainName; # triggers an exception if invalid.
+    oSelf.sbSameSite = sbSameSite; # triggers an exception if invalid.
+    oSelf.sb0Path = sb0Path; # triggers an exception if invalid.
+  
+  @property
+  def sbDomainName(oSelf):
+    return oSelf.__sbDomainName;
+  @sbDomainName.setter
+  def sbDomainName(oSelf, sbDomainName):
+    oSelf.__sbDomainName = sbDomainName;
+    if not oSelf.fbIsValidDomainName(sbDomainName):
+      raise cInvalidCookieDomainNameException(
+        "sbDomainName must be None or a valid domain name, not %s" % repr(sbDomainName),
+        oSelf,
+      );
+  
+  @property
+  def sbSameSite(oSelf):
+    return oSelf.__sbSameSite;
+  @sbSameSite.setter
+  def sbSameSite(oSelf, sbSameSite):
+    oSelf.__sbSameSite = sbSameSite;
+    if not sbSameSite in [b"Strict", b"Lax", b"None"]:
+      raise cInvalidCookieSameSiteException(
+        "sbSameSite must be \"Strict\",  \"Lax\", or \"None\", not %s" % repr(sbSameSite),
+        oSelf,
+      );
+  
+  @property
+  def sb0Path(oSelf):
+    return oSelf.__sb0Path;
+  @sb0Path.setter
+  def sb0Path(oSelf, sb0Path):
+    oSelf.__sb0Path = sb0Path;
+    if sb0Path is not None and not oSelf.fbIsValidPath(sb0Path):
+      raise cInvalidCookiePathException(
+        "sb0Path must be None or a valid path, not %s" % repr(sb0Path),
+        oSelf,
+      );
   
   def fbAppliesToDomainName(oSelf, sbDomainName):
     sbLowerCookieDomainNameWithLeadingDot = b".%s" % oSelf.sbDomainName.lstrip(b".").lower();
@@ -132,9 +162,9 @@ class cHTTPCookie(object):
   
   def fbAppliesToPath(oSelf, sbPath):
     # I do not know if this match is case sensitive or not. I've implemented it case insensitive.
-    if oSelf.sb0Path is None:
+    if oSelf.__sb0Path is None:
       return True; # Applies to all paths.
-    sbLowerCookiePathWithLeadingAndTrailingSlash = b"/%s/" % oSelf.sb0Path.strip(b"/").lower();
+    sbLowerCookiePathWithLeadingAndTrailingSlash = b"/%s/" % oSelf.__sb0Path.strip(b"/").lower();
     if sbLowerCookiePathWithLeadingAndTrailingSlash == b"//":
       sbLowerCookiePathWithLeadingAndTrailingSlash = b"/";
     sbLowerPathWithLeadingAndTrailingSlash = b"/%s/" % sbPath.strip(b"/").lower();
@@ -155,7 +185,7 @@ class cHTTPCookie(object):
   def __str__(oSelf):
     asDetails = [
       "%s=%s" % (repr(oSelf.sbName)[1:], repr(oSelf.sbValue)[1:]),
-      "Domain name = %s" % repr(oSelf.sbDomainName)[1:],
+      "Domain name = %s" % repr(oSelf.__sbDomainName)[1:],
     ];
     if oSelf.o0ExpirationDateTime is not None:
       oValidDuration = cDateTime.foNow().foGetDurationForEndDateTime(oSelf.o0ExpirationDateTime);
@@ -164,24 +194,24 @@ class cHTTPCookie(object):
         asDetails.append("Expired %s ago" % oValidDuration.fsToHumanReadableString(u0MaxNumberOfUnitsInOutput = 2));
       else:
         asDetails.append("Expires in %s" % oValidDuration.fsToHumanReadableString(u0MaxNumberOfUnitsInOutput = 2));
-    if oSelf.sb0Path is not None:
-      asDetails.append("Path = %s" % repr(oSelf.sb0Path)[1:]);
+    if oSelf.__sb0Path is not None:
+      asDetails.append("Path = %s" % repr(oSelf.__sb0Path)[1:]);
     if oSelf.bSecure:
       asDetails.append("Secure");
     if oSelf.bHttpOnly:
       asDetails.append("HttpOnly");
-    if oSelf.sbSameSite != "Lax":
-      asDetails.append("SameSite = %s" % repr(oSelf.sbSameSite)[1:]);
+    if oSelf.__sbSameSite != "Lax":
+      asDetails.append("SameSite = %s" % repr(oSelf.__sbSameSite)[1:]);
     return "; ".join(asDetails);
   
   def fsbToNetscapeFileFormat(oSelf):
     return b" ".join([
       "%s%s" % (
         b"#HttpOnly_." if oSelf.bHtttpOnly else b"",
-        oSelf.sbDomainName.lstrip(b"."),
+        oSelf.__sbDomainName.lstrip(b"."),
       ),
       b"FALSE",
-      oSelf.sb0Path or b"/",
+      oSelf.__sb0Path or b"/",
       b"TRUE" if oSelf.bSecure else b"FALSE",
       oSelf.o0ExpirationDateTime.fuToTimestamp() if oSelf.o0ExpirationDateTime else 0,
       oSelf.sbName,
