@@ -1,8 +1,8 @@
-from mHTTPProtocol import cHTTPHeader;
+from mHTTPProtocol import cHeader;
 
 bDebugOutput = False;
 
-def cHTTPCookieStore_fApplyToRequestForURL(oSelf, oRequest, oURL):
+def cCookieStore_fApplyToRequestForURL(oSelf, oRequest, oURL):
   if bDebugOutput: print(",-- Applying session headers ".ljust(80, "-"));
   # Cookies
   asbCookieHeaderElements = [];

@@ -2,7 +2,7 @@ import datetime, re;
 
 from mDateTime import cDateTime, cDateTimeDuration;
 
-from .cHTTPCookie import cHTTPCookie;
+from .cCookie import cCookie;
 
 bDebugOutput = False;
 
@@ -50,37 +50,43 @@ rbHTTPDateTimeFormat_Compatible = re.compile(b"".join([
   rb"\Z",
 ]));
 
-def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
+def cCookieStore_fUpdateFromResponseAndURL(oSelf,
   oResponse,
   oURL,
 ):
   # Update the cookies provided in the response:
-  for oHeader in oResponse.oHeaders.faoGetHeadersForName(b"Set-Cookie"):
-    aCookie_tsbName_and_sbValue = oHeader.fGet_atsbName_and_sbValue();
-    # The first name-value pair is the cookie's name and value.
-    sbCookieName, sbCookieValue = aCookie_tsbName_and_sbValue.pop(0);
+  for oHeader in oResponse.oHeaders.faoGetForNormalizedName(b"Set-Cookie"):
+    aCookie_tsbName_and_sb0Value = [
+      (sbName, sb0Value)
+      for (sbName, sb0Value) in oHeader.dsb0Value_by_sbName.items()
+    ];
+    # Headers must have a value, so there is always going to be at least one
+    # name-value pair. The first name-value pair is the cookie's name and value.
+    sbCookieName, sb0CookieValue = aCookie_tsbName_and_sb0Value.pop(0);
+    # there may not be a value, in which case we use an empty string.
+    sbCookieValue = sb0CookieValue or b"";
     sbCookieDomainName = oURL.sbHost;
-    sbLowerCookieDomainName = sbCookieDomainName.lower()
+    sbLowerCookieDomainName = sbCookieDomainName.lower();
     # Go through any remaining name-value pairs and handle them as cookie attributes. 
     bValidExpiresAttributeFound = False;
     bDomainAttributeFound = False;
     dxCookieAttributeArguments = {};
     bSecurePrefix = sbCookieName.startswith(b"__Secure-");
     bHostPrefix = sbCookieName.startswith(b"__Host-");
-    for (sbName, sbValue) in aCookie_tsbName_and_sbValue:
+    for (sbName, sb0Value) in aCookie_tsbName_and_sb0Value:
       sbLowerName = sbName.lower();
       if sbLowerName == b"expires":
         # What should we do if the server provides multiple "Expires" values?
         # For now we use the last valid value. TODO: find out if there is a standard.
         try:
-          (sbDay, sbMonthName, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_RFC9110.match(sbValue).groups();
+          (sbDay, sbMonthName, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_RFC9110.match(sb0Value).groups();
         except:
           try:
-            (sbMonthName, sbDay, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_Compatible.match(sbValue).groups();
+            (sbMonthName, sbDay, sbYear, sbHour, sbMinute, sbSecond) = rbHTTPDateTimeFormat_Compatible.match(sb0Value).groups();
           except:
             if bDebugOutput: print("- Invalid 'Expires' attribute for %s" % oHeader);
             if oSelf.f0InvalidCookieAttributeCallback:
-              oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
+              oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sb0Value, True);
             # If the server provides an invalid "Expires" value, we will just ignore it.
             continue;
         oPyExpiresDateTime = datetime.datetime(
@@ -151,7 +157,7 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
         else:
           # make sure it starts with a '/' and there is no '/' after the last directory name.
           sbPath = b"/" + sbValue.strip(b"/");
-          if not cHTTPCookie.fbIsValidPath(sbPath):
+          if not cCookie.fbIsValidPath(sbPath):
             if bDebugOutput: print("- Invalid 'Path' attribute for %s" % oHeader);
             if oSelf.f0InvalidCookieAttributeCallback:
               oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
@@ -161,7 +167,7 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
         # What should we do if the server provides a value for "Secure"?
         # For now we report and ignore any value. TODO: find out if there is a standard.
         if sbValue:
-          if bDebugOutput: print("- Superflous 'Secure' attribute value for %s" % oHeader);
+          if bDebugOutput: print("- Superfluous 'Secure' attribute value for %s" % oHeader);
           if oSelf.f0InvalidCookieAttributeCallback:
             oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
         dxCookieAttributeArguments["bSecure"] = True;
@@ -169,7 +175,7 @@ def cHTTPCookieStore_fUpdateFromResponseAndURL(oSelf,
         # What should we do if the server provides a value for "HttpOnly"?
         # For now we report and ignore any value. TODO: find out if there is a standard.
         if sbValue:
-          if bDebugOutput: print("- Superflous 'HttpOnly' attribute value for %s" % oHeader);
+          if bDebugOutput: print("- Superfluous 'HttpOnly' attribute value for %s" % oHeader);
           if oSelf.f0InvalidCookieAttributeCallback:
             oSelf.f0InvalidCookieAttributeCallback(oSelf, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbName, sbValue, True);
         dxCookieAttributeArguments["bHttpOnly"] = True;

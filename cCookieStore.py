@@ -1,26 +1,26 @@
 import re;
 
-from .cHTTPCookie import cHTTPCookie;
-from .cHTTPCookieStore_faoGetCookies import cHTTPCookieStore_faoGetCookies;
-from .cHTTPCookieStore_faoGetCookiesForURL import cHTTPCookieStore_faoGetCookiesForURL;
-from .cHTTPCookieStore_fApplyToRequestForURL import cHTTPCookieStore_fApplyToRequestForURL;
-from .cHTTPCookieStore_fbImportFromJSON import cHTTPCookieStore_fbImportFromJSON;
-from .cHTTPCookieStore_fbRemoveCookie import cHTTPCookieStore_fbRemoveCookie;
-from .cHTTPCookieStore_fdxExportToJSON import cHTTPCookieStore_fdxExportToJSON;
-from .cHTTPCookieStore_foAddCookie import cHTTPCookieStore_foAddCookie;
-from .cHTTPCookieStore_foClone import cHTTPCookieStore_foClone;
-from .cHTTPCookieStore_fUpdateFromResponseAndURL import cHTTPCookieStore_fUpdateFromResponseAndURL;
+from .cCookie import cCookie;
+from .cCookieStore_faoGetCookies import cCookieStore_faoGetCookies;
+from .cCookieStore_faoGetCookiesForURL import cCookieStore_faoGetCookiesForURL;
+from .cCookieStore_fApplyToRequestForURL import cCookieStore_fApplyToRequestForURL;
+from .cCookieStore_fbImportFromJSON import cCookieStore_fbImportFromJSON;
+from .cCookieStore_fbRemoveCookie import cCookieStore_fbRemoveCookie;
+from .cCookieStore_fdxExportToJSON import cCookieStore_fdxExportToJSON;
+from .cCookieStore_foAddCookie import cCookieStore_foAddCookie;
+from .cCookieStore_foClone import cCookieStore_foClone;
+from .cCookieStore_fUpdateFromResponseAndURL import cCookieStore_fUpdateFromResponseAndURL;
 
 rbEOL = re.compile(rb"[\r\n]+");
 
-class cHTTPCookieStore(object):
+class cCookieStore(object):
   @classmethod
   def foFromNetscapeFileFormat(cClass, sbLines):
     oCookieStore = cClass();
     for sbLine in rbEOL.split(sbLines):
       sbLineStripped = sbLine.strip();
       if sbLineStripped != b"" and not sbLineStripped.startswith(b"#"):
-        oCookie = cHTTPCookie.foFromNetscapeFileFormat(sbLine);
+        oCookie = cCookie.foFromNetscapeFileFormat(sbLine);
         oCookieStore.foAddCookie(oCookie);
     return oCookieStore;
 
@@ -46,7 +46,7 @@ class cHTTPCookieStore(object):
     for sbLine in rbEOL.split(sbLines):
       sbLineStripped = sbLine.strip();
       if sbLineStripped != b"" and not sbLineStripped.startswith(b"# "):
-        oCookie = cHTTPCookie.foFromNetscapeFileFormat(sbLine);
+        oCookie = cCookie.foFromNetscapeFileFormat(sbLine);
         oSelf.foAddCookie(oCookie);
         uCookiesAdded += 1;
     return uCookiesAdded;
@@ -64,12 +64,12 @@ class cHTTPCookieStore(object):
   def __str__(oSelf):
     return "%s#%X{%s}" % (oSelf.__class__.__name__, id(oSelf), ", ".join(oSelf.fasGetDetails()));
 
-  faoGetCookies = cHTTPCookieStore_faoGetCookies;
-  faoGetCookiesForURL = cHTTPCookieStore_faoGetCookiesForURL;
-  fApplyToRequestForURL = cHTTPCookieStore_fApplyToRequestForURL;
-  fbImportFromJSON = cHTTPCookieStore_fbImportFromJSON;
-  fbRemoveCookie = cHTTPCookieStore_fbRemoveCookie;
-  fdxExportToJSON = cHTTPCookieStore_fdxExportToJSON;
-  foAddCookie = cHTTPCookieStore_foAddCookie;
-  foClone = cHTTPCookieStore_foClone;
-  fUpdateFromResponseAndURL = cHTTPCookieStore_fUpdateFromResponseAndURL;
+  faoGetCookies = cCookieStore_faoGetCookies;
+  faoGetCookiesForURL = cCookieStore_faoGetCookiesForURL;
+  fApplyToRequestForURL = cCookieStore_fApplyToRequestForURL;
+  fbImportFromJSON = cCookieStore_fbImportFromJSON;
+  fbRemoveCookie = cCookieStore_fbRemoveCookie;
+  fdxExportToJSON = cCookieStore_fdxExportToJSON;
+  foAddCookie = cCookieStore_foAddCookie;
+  foClone = cCookieStore_foClone;
+  fUpdateFromResponseAndURL = cCookieStore_fUpdateFromResponseAndURL;

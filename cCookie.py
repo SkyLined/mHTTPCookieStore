@@ -28,7 +28,7 @@ rPathFormat = re.compile(
   rb"\Z"
 );
 
-class cHTTPCookie(object):
+class cCookie(object):
   @staticmethod
   def fbIsValidDomainName(sbDomainName):
     return rDomainNameFormat.match(sbDomainName.lstrip(b".")) is not None;

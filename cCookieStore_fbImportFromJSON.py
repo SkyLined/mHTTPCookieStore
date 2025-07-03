@@ -3,7 +3,7 @@ import json;
 from mDateTime import cDateTime;
 from mNotProvided import fbIsProvided, zNotProvided;
 
-from .cHTTPCookie import cHTTPCookie;
+from .cCookie import cCookie;
 
 def fxProcessType(sName, xValue, xAcceptedType):
   if not isinstance(xValue, str if xAcceptedType in (bytes, cDateTime) else xAcceptedType):
@@ -32,7 +32,7 @@ def fxProcessType(sName, xValue, xAcceptedType):
       );
   return xValue;
 
-def cHTTPCookieStore_fbImportFromJSON(oSelf, 
+def cCookieStore_fbImportFromJSON(oSelf, 
   dxJSON,
 ):
   sMainJSONElementName = "HTTPCookieStore_ddxCookie_by_sName_by_sLowerDomainName";
@@ -84,7 +84,7 @@ def cHTTPCookieStore_fbImportFromJSON(oSelf,
             sCookiePropertyJSONElementName, repr(dxCookieProperties),
           ),
         );
-      oCookie = cHTTPCookie(sbCookieName, sbzCookieValue, sbzCookieDomainName, **dxCookieAttributeArguments);
+      oCookie = cCookie(sbCookieName, sbzCookieValue, sbzCookieDomainName, **dxCookieAttributeArguments);
       if oCookie.fbIsExpired():
         if oSelf.f0CookieExpiredCallback:
           oSelf.f0CookieExpiredCallback(oSelf, oCookie, None);

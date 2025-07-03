@@ -1,6 +1,6 @@
-from .cHTTPCookie import cHTTPCookie;
+from .cCookie import cCookie;
 
-def cHTTPCookieStore_foAddCookie(oSelf, *txArgs, **dxArgs):
+def cCookieStore_foAddCookie(oSelf, *txArgs, **dxArgs):
   if len(txArgs) == 1 and len(dxArgs) == 0 and isinstance(txArgs[0], cHTTPCookie):
     oCookie = txArgs[0];
   else:

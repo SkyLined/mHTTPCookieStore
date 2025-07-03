@@ -3,7 +3,7 @@ from mNotProvided import \
     fxGetFirstProvidedValue, \
     zNotProvided;
 
-def cHTTPCookieStore_foClone(oSelf,
+def cCookieStore_foClone(oSelf,
   *,
   fz0InvalidCookieAttributeCallback = zNotProvided, # (oCookieStore, oResponse, oURL, oHeader, sbCookieName, sbCookieValue, sbAttributeName, sb0AttributeValue, bIsNameKnown)
   fz0SetCookieCallback = zNotProvided, # (oCookieStore, oCookie, o0PreviousCookie)

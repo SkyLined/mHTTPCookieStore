@@ -1,4 +1,4 @@
-from .cHTTPCookieStore import cHTTPCookieStore;
+from .cCookieStore import cCookieStore;
 from .mExceptions import (
   cInvalidCookieDomainNameException,
   cInvalidCookieException,
@@ -7,7 +7,7 @@ from .mExceptions import (
 );
 
 __all__ = [
-  "cHTTPCookieStore",
+  "cCookieStore",
   "cInvalidCookieDomainNameException",
   "cInvalidCookieException",
   "cInvalidCookiePathException",

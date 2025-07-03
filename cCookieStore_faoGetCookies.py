@@ -2,7 +2,7 @@ from mDateTime import cDateTime;
 
 bDebugOutput = False;
 
-def cHTTPCookieStore_faoGetCookies(oSelf):
+def cCookieStore_faoGetCookies(oSelf):
   oNow = cDateTime.foNow();
   aoCookies = [];
   for aoDomainCookies in oSelf.daoCookies_by_sbLowerDomainName.values():

@@ -2,7 +2,7 @@ from mDateTime import cDateTime;
 
 bDebugOutput = False;
 
-def cHTTPCookieStore_faoGetCookiesForURL(oSelf, oURL):
+def cCookieStore_faoGetCookiesForURL(oSelf, oURL):
   if not oSelf.daoCookies_by_sbLowerDomainName:
     if bDebugOutput: print("| - No cookies in session");
     return [];

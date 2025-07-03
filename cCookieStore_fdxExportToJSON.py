@@ -1,4 +1,4 @@
-def cHTTPCookieStore_fdxExportToJSON(oSelf):
+def cCookieStore_fdxExportToJSON(oSelf):
   # Create Cookies JSON data:
   ddxCookie_by_sName_by_sLowerDomainName = {};
   for (sbLowerDomainName, aoCookies) in oSelf.daoCookies_by_sbLowerDomainName.items():
